@@ -169,11 +169,11 @@ function TerminalPage() {
     <div className="min-h-screen bg-background text-foreground">
       <TerminalHeader status={statusQ.data} />
 
-      {isMockMode && (
-        <div className="border-b border-warning/30 bg-warning/10 px-6 py-2 text-center text-xs text-warning">
-          Running in mock mode — set{" "}
-          <code className="font-mono">VITE_API_BASE_URL</code> to connect the
-          monitoring engine.
+      {!isBackendConfigured && (
+        <div className="border-b border-danger/30 bg-danger/10 px-6 py-2 text-center text-xs text-danger">
+          Monitoring engine not configured — set{" "}
+          <code className="font-mono">VITE_API_BASE_URL</code> to the Python
+          engine's HTTP endpoint. The UI displays no data until connected.
         </div>
       )}
 
