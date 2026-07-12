@@ -11,7 +11,7 @@ import { MonitoringControls } from "@/components/terminal/MonitoringControls";
 import { MonitoringDashboard } from "@/components/terminal/MonitoringDashboard";
 import { Button } from "@/components/ui/button";
 
-import { api, isMockMode } from "@/lib/terminal/api";
+import { api, isBackendConfigured } from "@/lib/terminal/api";
 import type { Contract, WebhookProfile } from "@/lib/terminal/types";
 
 export const Route = createFileRoute("/")({
@@ -38,16 +38,29 @@ function TerminalPage() {
   const [editing, setEditing] = useState<Contract | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
 
-  const statusQ = useQuery({ queryKey: ["status"], queryFn: api.getStatus, refetchInterval: 5000 });
-  const contractsQ = useQuery({ queryKey: ["contracts"], queryFn: api.getContracts });
-  const profilesQ = useQuery({ queryKey: ["profiles"], queryFn: api.getProfiles });
+  const statusQ = useQuery({
+    queryKey: ["status"],
+    queryFn: api.getStatus,
+    refetchInterval: 5000,
+    enabled: isBackendConfigured,
+  });
+  const contractsQ = useQuery({
+    queryKey: ["contracts"],
+    queryFn: api.getContracts,
+    enabled: isBackendConfigured,
+  });
+  const profilesQ = useQuery({
+    queryKey: ["profiles"],
+    queryFn: api.getProfiles,
+    enabled: isBackendConfigured,
+  });
 
   const running = statusQ.data?.state === "running";
 
   const liveQ = useQuery({
     queryKey: ["dashboard"],
     queryFn: api.getDashboard,
-    enabled: statusQ.data?.state !== "idle",
+    enabled: isBackendConfigured && statusQ.data?.state !== "idle" && !!statusQ.data,
     refetchInterval: running ? 1500 : false,
   });
 
@@ -169,11 +182,11 @@ function TerminalPage() {
     <div className="min-h-screen bg-background text-foreground">
       <TerminalHeader status={statusQ.data} />
 
-      {isMockMode && (
-        <div className="border-b border-warning/30 bg-warning/10 px-6 py-2 text-center text-xs text-warning">
-          Running in mock mode — set{" "}
-          <code className="font-mono">VITE_API_BASE_URL</code> to connect the
-          monitoring engine.
+      {!isBackendConfigured && (
+        <div className="border-b border-danger/30 bg-danger/10 px-6 py-2 text-center text-xs text-danger">
+          Monitoring engine not configured — set{" "}
+          <code className="font-mono">VITE_API_BASE_URL</code> to the Python
+          engine's HTTP endpoint. The UI displays no data until connected.
         </div>
       )}
 

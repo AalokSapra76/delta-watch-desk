@@ -1,5 +1,7 @@
 // BK Delta Terminal — types shared across UI and API client
-export type Instrument = "NIFTY" | "BANKNIFTY" | "FINNIFTY";
+// Instrument identifiers are supplied by the backend (broker instrument
+// master). Do not hardcode a fixed union — the engine is the source of truth.
+export type Instrument = string;
 export type OptionType = "CE" | "PE";
 export type Condition = "<" | "<=" | ">" | ">=" | "=";
 export type MonitoringState = "idle" | "running" | "paused";

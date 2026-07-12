@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Plus, RotateCcw } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -10,11 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  EXPIRIES,
-  INSTRUMENTS,
-  strikesFor,
-} from "@/lib/terminal/instruments";
+import { api } from "@/lib/terminal/api";
 import type {
   Condition,
   Contract,
@@ -34,7 +31,7 @@ interface Props {
 }
 
 interface FormState {
-  instrument: Instrument;
+  instrument: Instrument | "";
   expiry: string;
   strike: string;
   optionType: OptionType;
@@ -43,19 +40,40 @@ interface FormState {
   webhookProfileId: string;
 }
 
-const empty = (profiles: WebhookProfile[]): FormState => ({
-  instrument: "NIFTY",
-  expiry: EXPIRIES[0] ?? "",
-  strike: String(strikesFor("NIFTY")[20]),
+const emptyForm: FormState = {
+  instrument: "",
+  expiry: "",
+  strike: "",
   optionType: "CE",
   condition: "<",
   threshold: "0.3",
-  webhookProfileId: profiles[0]?.id ?? "",
-});
+  webhookProfileId: "",
+};
 
 export function ContractBuilder({ profiles, editing, onSubmit, onCancelEdit }: Props) {
-  const [form, setForm] = useState<FormState>(() => empty(profiles));
+  const [form, setForm] = useState<FormState>(emptyForm);
 
+  const instrumentsQ = useQuery({
+    queryKey: ["instruments"],
+    queryFn: api.getInstruments,
+  });
+  const expiriesQ = useQuery({
+    queryKey: ["expiries", form.instrument],
+    queryFn: () => api.getExpiries(form.instrument as Instrument),
+    enabled: !!form.instrument,
+  });
+  const strikesQ = useQuery({
+    queryKey: ["strikes", form.instrument, form.expiry],
+    queryFn: () =>
+      api.getStrikes(form.instrument as Instrument, form.expiry),
+    enabled: !!form.instrument && !!form.expiry,
+  });
+
+  const instruments = instrumentsQ.data ?? [];
+  const expiries = expiriesQ.data ?? [];
+  const strikes = strikesQ.data ?? [];
+
+  // Hydrate form when editing an existing contract.
   useEffect(() => {
     if (editing) {
       setForm({
@@ -70,30 +88,45 @@ export function ContractBuilder({ profiles, editing, onSubmit, onCancelEdit }: P
     }
   }, [editing]);
 
+  // Default webhook profile once profiles load.
   useEffect(() => {
-    // keep webhook default aligned when profiles load
     if (!form.webhookProfileId && profiles[0]) {
       setForm((f) => ({ ...f, webhookProfileId: profiles[0].id }));
     }
   }, [profiles, form.webhookProfileId]);
 
-  const strikes = strikesFor(form.instrument);
+  // When the instrument list loads and nothing is selected, pick the first.
+  useEffect(() => {
+    if (!form.instrument && instruments[0]) {
+      setForm((f) => ({ ...f, instrument: instruments[0] }));
+    }
+  }, [instruments, form.instrument]);
+
+  // If current expiry is no longer valid for the chosen instrument, reset it.
+  useEffect(() => {
+    if (form.expiry && expiries.length && !expiries.includes(form.expiry)) {
+      setForm((f) => ({ ...f, expiry: "", strike: "" }));
+    } else if (!form.expiry && expiries[0]) {
+      setForm((f) => ({ ...f, expiry: expiries[0] }));
+    }
+  }, [expiries, form.expiry]);
+
+  // Reset strike if it's not in the fresh strike list.
+  useEffect(() => {
+    if (form.strike && strikes.length && !strikes.includes(Number(form.strike))) {
+      setForm((f) => ({ ...f, strike: "" }));
+    }
+  }, [strikes, form.strike]);
 
   const handleAdd = () => {
     const threshold = Number(form.threshold);
     const strike = Number(form.strike);
-    if (!form.webhookProfileId) {
-      toast.error("Create a webhook profile first.");
-      return;
-    }
-    if (Number.isNaN(threshold)) {
-      toast.error("Delta threshold must be a number.");
-      return;
-    }
-    if (Number.isNaN(strike)) {
-      toast.error("Strike must be a number.");
-      return;
-    }
+    if (!form.instrument) return toast.error("Select an instrument.");
+    if (!form.expiry) return toast.error("Select an expiry.");
+    if (!form.strike) return toast.error("Select a strike.");
+    if (!form.webhookProfileId) return toast.error("Create a webhook profile first.");
+    if (Number.isNaN(threshold)) return toast.error("Delta threshold must be a number.");
+    if (Number.isNaN(strike)) return toast.error("Strike must be a number.");
     onSubmit({
       instrument: form.instrument,
       expiry: form.expiry,
@@ -103,13 +136,24 @@ export function ContractBuilder({ profiles, editing, onSubmit, onCancelEdit }: P
       threshold,
       webhookProfileId: form.webhookProfileId,
     });
-    if (!editing) setForm(empty(profiles));
+    if (!editing) {
+      setForm((f) => ({
+        ...emptyForm,
+        instrument: f.instrument,
+        expiry: f.expiry,
+        webhookProfileId: f.webhookProfileId,
+      }));
+    }
   };
 
   const handleClear = () => {
-    setForm(empty(profiles));
+    setForm(emptyForm);
     onCancelEdit?.();
   };
+
+  const instrumentError = instrumentsQ.isError;
+  const expiryDisabled = !form.instrument || expiriesQ.isLoading || expiriesQ.isError;
+  const strikeDisabled = !form.expiry || strikesQ.isLoading || strikesQ.isError;
 
   return (
     <section className="panel p-6">
@@ -127,21 +171,26 @@ export function ContractBuilder({ profiles, editing, onSubmit, onCancelEdit }: P
         )}
       </div>
 
+      {instrumentError && (
+        <div className="mb-4 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">
+          Failed to load instruments from monitoring engine.
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Field label="Instrument">
           <Select
-            value={form.instrument}
+            value={form.instrument || undefined}
             onValueChange={(v: Instrument) =>
-              setForm((f) => ({
-                ...f,
-                instrument: v,
-                strike: String(strikesFor(v)[20]),
-              }))
+              setForm((f) => ({ ...f, instrument: v, expiry: "", strike: "" }))
             }
+            disabled={instrumentsQ.isLoading || instruments.length === 0}
           >
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue placeholder={instrumentsQ.isLoading ? "Loading…" : "Select instrument"} />
+            </SelectTrigger>
             <SelectContent>
-              {INSTRUMENTS.map((i) => (
+              {instruments.map((i) => (
                 <SelectItem key={i} value={i}>{i}</SelectItem>
               ))}
             </SelectContent>
@@ -150,12 +199,15 @@ export function ContractBuilder({ profiles, editing, onSubmit, onCancelEdit }: P
 
         <Field label="Expiry">
           <Select
-            value={form.expiry}
-            onValueChange={(v) => setForm((f) => ({ ...f, expiry: v }))}
+            value={form.expiry || undefined}
+            onValueChange={(v) => setForm((f) => ({ ...f, expiry: v, strike: "" }))}
+            disabled={expiryDisabled || expiries.length === 0}
           >
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue placeholder={expiriesQ.isLoading ? "Loading…" : "Select expiry"} />
+            </SelectTrigger>
             <SelectContent>
-              {EXPIRIES.map((e) => (
+              {expiries.map((e) => (
                 <SelectItem key={e} value={e}>{e}</SelectItem>
               ))}
             </SelectContent>
@@ -164,10 +216,13 @@ export function ContractBuilder({ profiles, editing, onSubmit, onCancelEdit }: P
 
         <Field label="Strike">
           <Select
-            value={form.strike}
+            value={form.strike || undefined}
             onValueChange={(v) => setForm((f) => ({ ...f, strike: v }))}
+            disabled={strikeDisabled || strikes.length === 0}
           >
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue placeholder={strikesQ.isLoading ? "Loading…" : "Select strike"} />
+            </SelectTrigger>
             <SelectContent className="max-h-64">
               {strikes.map((s) => (
                 <SelectItem key={s} value={String(s)}>{s}</SelectItem>
@@ -214,8 +269,9 @@ export function ContractBuilder({ profiles, editing, onSubmit, onCancelEdit }: P
 
         <Field label="Webhook Profile" className="sm:col-span-2">
           <Select
-            value={form.webhookProfileId}
+            value={form.webhookProfileId || undefined}
             onValueChange={(v) => setForm((f) => ({ ...f, webhookProfileId: v }))}
+            disabled={profiles.length === 0}
           >
             <SelectTrigger>
               <SelectValue placeholder={profiles.length ? "Select profile" : "No profiles yet"} />

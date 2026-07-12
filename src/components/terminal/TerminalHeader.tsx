@@ -9,8 +9,9 @@ interface Props {
 }
 
 export function TerminalHeader({ status }: Props) {
-  const [now, setNow] = useState(() => new Date());
+  const [now, setNow] = useState<Date | null>(null);
   useEffect(() => {
+    setNow(new Date());
     const t = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
@@ -89,7 +90,7 @@ export function TerminalHeader({ status }: Props) {
             </span>
           </div>
           <div className="tabular hidden text-sm text-muted-foreground sm:block">
-            {now.toLocaleTimeString("en-IN", { hour12: false })}
+            {now ? now.toLocaleTimeString("en-IN", { hour12: false }) : "--:--:--"}
           </div>
         </div>
       </div>
