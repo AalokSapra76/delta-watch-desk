@@ -38,16 +38,29 @@ function TerminalPage() {
   const [editing, setEditing] = useState<Contract | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
 
-  const statusQ = useQuery({ queryKey: ["status"], queryFn: api.getStatus, refetchInterval: 5000 });
-  const contractsQ = useQuery({ queryKey: ["contracts"], queryFn: api.getContracts });
-  const profilesQ = useQuery({ queryKey: ["profiles"], queryFn: api.getProfiles });
+  const statusQ = useQuery({
+    queryKey: ["status"],
+    queryFn: api.getStatus,
+    refetchInterval: 5000,
+    enabled: isBackendConfigured,
+  });
+  const contractsQ = useQuery({
+    queryKey: ["contracts"],
+    queryFn: api.getContracts,
+    enabled: isBackendConfigured,
+  });
+  const profilesQ = useQuery({
+    queryKey: ["profiles"],
+    queryFn: api.getProfiles,
+    enabled: isBackendConfigured,
+  });
 
   const running = statusQ.data?.state === "running";
 
   const liveQ = useQuery({
     queryKey: ["dashboard"],
     queryFn: api.getDashboard,
-    enabled: statusQ.data?.state !== "idle",
+    enabled: isBackendConfigured && statusQ.data?.state !== "idle" && !!statusQ.data,
     refetchInterval: running ? 1500 : false,
   });
 
