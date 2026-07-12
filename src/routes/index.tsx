@@ -11,7 +11,7 @@ import { MonitoringControls } from "@/components/terminal/MonitoringControls";
 import { MonitoringDashboard } from "@/components/terminal/MonitoringDashboard";
 import { Button } from "@/components/ui/button";
 
-import { api, isMockMode } from "@/lib/terminal/api";
+import { api, isBackendConfigured } from "@/lib/terminal/api";
 import type { Contract, WebhookProfile } from "@/lib/terminal/types";
 
 export const Route = createFileRoute("/")({
