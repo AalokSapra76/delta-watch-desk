@@ -90,7 +90,7 @@ export function TerminalHeader({ status }: Props) {
             </span>
           </div>
           <div className="tabular hidden text-sm text-muted-foreground sm:block">
-            {now.toLocaleTimeString("en-IN", { hour12: false })}
+            {now ? now.toLocaleTimeString("en-IN", { hour12: false }) : "--:--:--"}
           </div>
         </div>
       </div>
