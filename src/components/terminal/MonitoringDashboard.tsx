@@ -56,23 +56,23 @@ export function MonitoringDashboard({ live }: Props) {
                   <Td>
                     <span
                       className={
-                        c.optionType === "CE"
+                        c.option_type === "CE"
                           ? "rounded-md bg-success/15 px-2 py-0.5 text-xs font-medium text-success"
                           : "rounded-md bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary"
                       }
                     >
-                      {c.optionType}
+                      {c.option_type}
                     </span>
                   </Td>
                   <Td className="tabular text-right">{fmt(c.spot)}</Td>
                   <Td className="tabular text-right">{fmt(c.premium)}</Td>
                   <Td className="tabular text-right font-medium">
-                    {c.currentDelta != null ? c.currentDelta.toFixed(3) : "—"}
+                    {c.current_delta != null ? c.current_delta.toFixed(3) : "—"}
                   </Td>
                   <Td className="tabular text-right text-muted-foreground">
-                    {c.threshold.toFixed(3)}
+                    {c.delta_threshold.toFixed(3)}
                   </Td>
-                  <Td className="tabular">{c.condition}</Td>
+                  <Td className="tabular">{c.trigger_direction}</Td>
                   <Td><StatusBadge status={c.status} /></Td>
                   <Td>
                     {c.triggered ? (
@@ -84,7 +84,7 @@ export function MonitoringDashboard({ live }: Props) {
                     )}
                   </Td>
                   <Td className="tabular text-xs text-muted-foreground">
-                    {c.lastUpdated ? new Date(c.lastUpdated).toLocaleTimeString("en-IN", { hour12: false }) : "—"}
+                    {c.last_updated ? new Date(c.last_updated).toLocaleTimeString("en-IN", { hour12: false }) : "—"}
                   </Td>
                 </tr>
               ))}

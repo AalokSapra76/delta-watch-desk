@@ -51,17 +51,17 @@ export function ContractsTable({ contracts, profiles, onEdit, onDelete }: Props)
                   <Td>
                     <span
                       className={
-                        c.optionType === "CE"
+                        c.option_type === "CE"
                           ? "rounded-md bg-success/15 px-2 py-0.5 text-xs font-medium text-success"
                           : "rounded-md bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary"
                       }
                     >
-                      {c.optionType}
+                      {c.option_type}
                     </span>
                   </Td>
-                  <Td className="tabular">{c.condition}</Td>
-                  <Td className="tabular">{c.threshold}</Td>
-                  <Td className="text-muted-foreground">{profileName(c.webhookProfileId)}</Td>
+                  <Td className="tabular">{c.trigger_direction}</Td>
+                  <Td className="tabular">{c.delta_threshold}</Td>
+                  <Td className="text-muted-foreground">{profileName(c.webhook_profile_id)}</Td>
                   <Td className="text-right">
                     <div className="flex justify-end gap-1">
                       <Button size="icon" variant="ghost" onClick={() => onEdit(c)}>

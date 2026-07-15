@@ -21,7 +21,8 @@ import type {
 } from "@/lib/terminal/types";
 import { toast } from "sonner";
 
-const CONDITIONS: Condition[] = ["<", "<=", ">", ">=", "="];
+// Engine (main.py) only supports these two directions.
+const DIRECTIONS: TriggerDirection[] = ["<", ">"];
 
 interface Props {
   profiles: WebhookProfile[];
@@ -34,20 +35,20 @@ interface FormState {
   instrument: Instrument | "";
   expiry: string;
   strike: string;
-  optionType: OptionType;
-  condition: Condition;
-  threshold: string;
-  webhookProfileId: string;
+  option_type: OptionType;
+  trigger_direction: TriggerDirection;
+  delta_threshold: string;
+  webhook_profile_id: string;
 }
 
 const emptyForm: FormState = {
   instrument: "",
   expiry: "",
   strike: "",
-  optionType: "CE",
-  condition: "<",
-  threshold: "0.3",
-  webhookProfileId: "",
+  option_type: "CE",
+  trigger_direction: "<",
+  delta_threshold: "0.3",
+  webhook_profile_id: "",
 };
 
 export function ContractBuilder({ profiles, editing, onSubmit, onCancelEdit }: Props) {
@@ -64,8 +65,7 @@ export function ContractBuilder({ profiles, editing, onSubmit, onCancelEdit }: P
   });
   const strikesQ = useQuery({
     queryKey: ["strikes", form.instrument, form.expiry],
-    queryFn: () =>
-      api.getStrikes(form.instrument as Instrument, form.expiry),
+    queryFn: () => api.getStrikes(form.instrument as Instrument, form.expiry),
     enabled: !!form.instrument && !!form.expiry,
   });
 
@@ -73,36 +73,32 @@ export function ContractBuilder({ profiles, editing, onSubmit, onCancelEdit }: P
   const expiries = expiriesQ.data ?? [];
   const strikes = strikesQ.data ?? [];
 
-  // Hydrate form when editing an existing contract.
   useEffect(() => {
     if (editing) {
       setForm({
         instrument: editing.instrument,
         expiry: editing.expiry,
         strike: String(editing.strike),
-        optionType: editing.optionType,
-        condition: editing.condition,
-        threshold: String(editing.threshold),
-        webhookProfileId: editing.webhookProfileId,
+        option_type: editing.option_type,
+        trigger_direction: editing.trigger_direction,
+        delta_threshold: String(editing.delta_threshold),
+        webhook_profile_id: editing.webhook_profile_id,
       });
     }
   }, [editing]);
 
-  // Default webhook profile once profiles load.
   useEffect(() => {
-    if (!form.webhookProfileId && profiles[0]) {
-      setForm((f) => ({ ...f, webhookProfileId: profiles[0].id }));
+    if (!form.webhook_profile_id && profiles[0]) {
+      setForm((f) => ({ ...f, webhook_profile_id: profiles[0].id }));
     }
-  }, [profiles, form.webhookProfileId]);
+  }, [profiles, form.webhook_profile_id]);
 
-  // When the instrument list loads and nothing is selected, pick the first.
   useEffect(() => {
     if (!form.instrument && instruments[0]) {
       setForm((f) => ({ ...f, instrument: instruments[0] }));
     }
   }, [instruments, form.instrument]);
 
-  // If current expiry is no longer valid for the chosen instrument, reset it.
   useEffect(() => {
     if (form.expiry && expiries.length && !expiries.includes(form.expiry)) {
       setForm((f) => ({ ...f, expiry: "", strike: "" }));
@@ -111,7 +107,6 @@ export function ContractBuilder({ profiles, editing, onSubmit, onCancelEdit }: P
     }
   }, [expiries, form.expiry]);
 
-  // Reset strike if it's not in the fresh strike list.
   useEffect(() => {
     if (form.strike && strikes.length && !strikes.includes(Number(form.strike))) {
       setForm((f) => ({ ...f, strike: "" }));
@@ -119,29 +114,29 @@ export function ContractBuilder({ profiles, editing, onSubmit, onCancelEdit }: P
   }, [strikes, form.strike]);
 
   const handleAdd = () => {
-    const threshold = Number(form.threshold);
+    const threshold = Number(form.delta_threshold);
     const strike = Number(form.strike);
     if (!form.instrument) return toast.error("Select an instrument.");
     if (!form.expiry) return toast.error("Select an expiry.");
     if (!form.strike) return toast.error("Select a strike.");
-    if (!form.webhookProfileId) return toast.error("Create a webhook profile first.");
+    if (!form.webhook_profile_id) return toast.error("Create a webhook profile first.");
     if (Number.isNaN(threshold)) return toast.error("Delta threshold must be a number.");
     if (Number.isNaN(strike)) return toast.error("Strike must be a number.");
     onSubmit({
       instrument: form.instrument,
       expiry: form.expiry,
       strike,
-      optionType: form.optionType,
-      condition: form.condition,
-      threshold,
-      webhookProfileId: form.webhookProfileId,
+      option_type: form.option_type,
+      trigger_direction: form.trigger_direction,
+      delta_threshold: threshold,
+      webhook_profile_id: form.webhook_profile_id,
     });
     if (!editing) {
       setForm((f) => ({
         ...emptyForm,
         instrument: f.instrument,
         expiry: f.expiry,
-        webhookProfileId: f.webhookProfileId,
+        webhook_profile_id: f.webhook_profile_id,
       }));
     }
   };
@@ -233,8 +228,8 @@ export function ContractBuilder({ profiles, editing, onSubmit, onCancelEdit }: P
 
         <Field label="Option Type">
           <Select
-            value={form.optionType}
-            onValueChange={(v: OptionType) => setForm((f) => ({ ...f, optionType: v }))}
+            value={form.option_type}
+            onValueChange={(v: OptionType) => setForm((f) => ({ ...f, option_type: v }))}
           >
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -244,14 +239,16 @@ export function ContractBuilder({ profiles, editing, onSubmit, onCancelEdit }: P
           </Select>
         </Field>
 
-        <Field label="Condition">
+        <Field label="Trigger Direction">
           <Select
-            value={form.condition}
-            onValueChange={(v: Condition) => setForm((f) => ({ ...f, condition: v }))}
+            value={form.trigger_direction}
+            onValueChange={(v: TriggerDirection) =>
+              setForm((f) => ({ ...f, trigger_direction: v }))
+            }
           >
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              {CONDITIONS.map((c) => (
+              {DIRECTIONS.map((c) => (
                 <SelectItem key={c} value={c}>{c}</SelectItem>
               ))}
             </SelectContent>
@@ -261,16 +258,16 @@ export function ContractBuilder({ profiles, editing, onSubmit, onCancelEdit }: P
         <Field label="Delta Threshold">
           <Input
             inputMode="decimal"
-            value={form.threshold}
-            onChange={(e) => setForm((f) => ({ ...f, threshold: e.target.value }))}
+            value={form.delta_threshold}
+            onChange={(e) => setForm((f) => ({ ...f, delta_threshold: e.target.value }))}
             className="tabular"
           />
         </Field>
 
         <Field label="Webhook Profile" className="sm:col-span-2">
           <Select
-            value={form.webhookProfileId || undefined}
-            onValueChange={(v) => setForm((f) => ({ ...f, webhookProfileId: v }))}
+            value={form.webhook_profile_id || undefined}
+            onValueChange={(v) => setForm((f) => ({ ...f, webhook_profile_id: v }))}
             disabled={profiles.length === 0}
           >
             <SelectTrigger>
