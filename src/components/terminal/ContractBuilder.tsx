@@ -13,10 +13,10 @@ import {
 } from "@/components/ui/select";
 import { api } from "@/lib/terminal/api";
 import type {
-  Condition,
   Contract,
   Instrument,
   OptionType,
+  TriggerDirection,
   WebhookProfile,
 } from "@/lib/terminal/types";
 import { toast } from "sonner";
