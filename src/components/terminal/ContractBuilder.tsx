@@ -175,7 +175,7 @@ export function ContractBuilder({ profiles, editing, onSubmit, onCancelEdit }: P
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Field label="Instrument">
           <Select
-            value={form.instrument || undefined}
+            value={form.instrument}
             onValueChange={(v: Instrument) =>
               setForm((f) => ({ ...f, instrument: v, expiry: "", strike: "" }))
             }
@@ -194,7 +194,7 @@ export function ContractBuilder({ profiles, editing, onSubmit, onCancelEdit }: P
 
         <Field label="Expiry">
           <Select
-            value={form.expiry || undefined}
+            value={form.expiry}
             onValueChange={(v) => setForm((f) => ({ ...f, expiry: v, strike: "" }))}
             disabled={expiryDisabled || expiries.length === 0}
           >
@@ -211,7 +211,7 @@ export function ContractBuilder({ profiles, editing, onSubmit, onCancelEdit }: P
 
         <Field label="Strike">
           <Select
-            value={form.strike || undefined}
+            value={form.strike}
             onValueChange={(v) => setForm((f) => ({ ...f, strike: v }))}
             disabled={strikeDisabled || strikes.length === 0}
           >
@@ -266,7 +266,7 @@ export function ContractBuilder({ profiles, editing, onSubmit, onCancelEdit }: P
 
         <Field label="Webhook Profile" className="sm:col-span-2">
           <Select
-            value={form.webhook_profile_id || undefined}
+            value={form.webhook_profile_id}
             onValueChange={(v) => setForm((f) => ({ ...f, webhook_profile_id: v }))}
             disabled={profiles.length === 0}
           >

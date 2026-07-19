@@ -67,10 +67,10 @@ export function MonitoringDashboard({ live }: Props) {
                   <Td className="tabular text-right">{fmt(c.spot)}</Td>
                   <Td className="tabular text-right">{fmt(c.premium)}</Td>
                   <Td className="tabular text-right font-medium">
-                    {c.current_delta != null ? c.current_delta.toFixed(3) : "—"}
+                    {fmtDelta(c.current_delta)}
                   </Td>
                   <Td className="tabular text-right text-muted-foreground">
-                    {c.delta_threshold.toFixed(3)}
+                    {fmtDelta(c.delta_threshold)}
                   </Td>
                   <Td className="tabular">{c.trigger_direction}</Td>
                   <Td><StatusBadge status={c.status} /></Td>
@@ -96,9 +96,14 @@ export function MonitoringDashboard({ live }: Props) {
   );
 }
 
-function fmt(v: number | null) {
-  if (v == null) return "—";
+function fmt(v: number | null | undefined) {
+  if (v == null || typeof v !== "number" || Number.isNaN(v)) return "—";
   return v.toLocaleString("en-IN", { maximumFractionDigits: 2 });
+}
+
+function fmtDelta(v: number | null | undefined) {
+  if (v == null || typeof v !== "number" || Number.isNaN(v)) return "—";
+  return v.toFixed(3);
 }
 
 const Th = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
