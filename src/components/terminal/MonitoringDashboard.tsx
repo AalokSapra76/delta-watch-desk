@@ -67,10 +67,10 @@ export function MonitoringDashboard({ live }: Props) {
                   <Td className="tabular text-right">{fmt(c.spot)}</Td>
                   <Td className="tabular text-right">{fmt(c.premium)}</Td>
                   <Td className="tabular text-right font-medium">
-                    {c.current_delta != null ? c.current_delta.toFixed(3) : "—"}
+                    {fmtDelta(c.current_delta)}
                   </Td>
                   <Td className="tabular text-right text-muted-foreground">
-                    {c.delta_threshold.toFixed(3)}
+                    {fmtDelta(c.delta_threshold)}
                   </Td>
                   <Td className="tabular">{c.trigger_direction}</Td>
                   <Td><StatusBadge status={c.status} /></Td>
