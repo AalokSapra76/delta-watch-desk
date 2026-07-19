@@ -96,9 +96,14 @@ export function MonitoringDashboard({ live }: Props) {
   );
 }
 
-function fmt(v: number | null) {
-  if (v == null) return "—";
+function fmt(v: number | null | undefined) {
+  if (v == null || typeof v !== "number" || Number.isNaN(v)) return "—";
   return v.toLocaleString("en-IN", { maximumFractionDigits: 2 });
+}
+
+function fmtDelta(v: number | null | undefined) {
+  if (v == null || typeof v !== "number" || Number.isNaN(v)) return "—";
+  return v.toFixed(3);
 }
 
 const Th = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
